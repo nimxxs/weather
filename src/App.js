@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import WeatherBox from './component/WeatherBox';
 import WeatherButton from './component/WeatherButton';
+import userEvent from '@testing-library/user-event';
 
 // 1. app 실행 되자마자(userEffect 사용) 현재 위치 기반의 날씨가 보임.
 // 1-1. 현재 위치를 가져온다.
@@ -14,6 +15,8 @@ import WeatherButton from './component/WeatherButton';
 
 function App() {
   const [weather, setWeather] = useState(null);
+  const [city, setCity] = useState('');
+  const cities = ['PARIS', 'NEW YORK', 'TOKYO', 'SEOUL'];
 
   const getCurrentLocation = () => {
     // Geolocation API -> 현재 위치 가져오기
@@ -34,16 +37,34 @@ function App() {
     setWeather(data);
   };
 
+  const getWeatherByCity = async () => {
+    let url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=95ab0c517a1cd478e155945eff5c1118&units=metric`
+    let response = await fetch(url);
+    let data = await response.json();
+    setWeather(data);
+  }
+
   // UI가 다 그려진 후 useEffect 작동
+  // useEffect componentUpdate 역할..
   useEffect(() => {
-    getCurrentLocation()
-  }, []) // 현재 배열에 변수가 없으니 renter 후 바로 실행이 됨.
+    if (city === "") {
+      getCurrentLocation();
+    } else {
+      getWeatherByCity();
+    }
+  }, [city]); // 현재 배열에 변수가 없으니 renter 후 바로 실행이 됨.
+
+  // useEffect는 UI가 그려졌을 때,
+  // 배열에 값이 있다면 배열에 있는 값이 바뀔 때마다 usetEffect가 호출이 된다.
+  // useEffect(() => {
+  //   getWeatherByCity()
+  // }, [city]);
 
   return (
     <div>
       <div className='container'>
-        <WeatherBox weather={weather}/>
-        <WeatherButton />
+        <WeatherBox weather={weather} />
+        <WeatherButton cities={cities} setCity={setCity} />
       </div>
     </div>
   );
