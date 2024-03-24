@@ -4,6 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import WeatherBox from './component/WeatherBox';
 import WeatherButton from './component/WeatherButton';
 import userEvent from '@testing-library/user-event';
+import ClipLoader from "react-spinners/ClipLoader";
 
 // 1. app 실행 되자마자(userEffect 사용) 현재 위치 기반의 날씨가 보임.
 // 1-1. 현재 위치를 가져온다.
@@ -16,6 +17,9 @@ import userEvent from '@testing-library/user-event';
 function App() {
   const [weather, setWeather] = useState(null);
   const [city, setCity] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [apiError, setAPIError] = useState("");
+
   const cities = ['PARIS', 'NEW YORK', 'TOKYO', 'SEOUL'];
 
   const getCurrentLocation = () => {
@@ -28,28 +32,50 @@ function App() {
       getWeatherByCurrentLocation(lat, lon)
     });
   };
-      // 넘어온 lat, lon을 매개변수로 받기
+  // 넘어온 lat, lon을 매개변수로 받기
   const getWeatherByCurrentLocation = async (lat, lon) => {
-    let url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=95ab0c517a1cd478e155945eff5c1118&units=metric`
-    // url을 호출해서 데이터를 가져올 동안 기다려라! 비동기!
-    let response = await fetch(url);
-    let data = await response.json();
-    setWeather(data);
+    try {
+      let url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=95ab0c517a1cd478e155945eff5c1118&units=metric`
+      // url을 호출해서 데이터를 가져올 동안 기다려라! 비동기!
+      let response = await fetch(url);
+      let data = await response.json();
+      setWeather(data);
+      setLoading(false);
+    } catch(err) {
+      setAPIError(err.message);
+      setLoading(false);
+    }
   };
 
   const getWeatherByCity = async () => {
-    let url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=95ab0c517a1cd478e155945eff5c1118&units=metric`
-    let response = await fetch(url);
-    let data = await response.json();
-    setWeather(data);
+    try {
+      let url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=95ab0c517a1cd478e155945eff5c1118&units=metric`
+      let response = await fetch(url);
+      let data = await response.json();
+      setWeather(data);
+      setLoading(false);
+    } catch(err) {
+      setAPIError(err.message);
+      setLoading(false);
+    }
+  }
+
+  const handleCityChange = (city) => {
+    if (city === "current") {
+      setCity(null);
+    } else {
+      setCity(city);
+    }
   }
 
   // UI가 다 그려진 후 useEffect 작동
   // useEffect componentUpdate 역할..
   useEffect(() => {
-    if (city === "") {
+    if (city === null) {
+      setLoading(true);
       getCurrentLocation();
     } else {
+      setLoading(true);
       getWeatherByCity();
     }
   }, [city]); // 현재 배열에 변수가 없으니 renter 후 바로 실행이 됨.
@@ -63,8 +89,16 @@ function App() {
   return (
     <div>
       <div className='container'>
-        <WeatherBox weather={weather} />
-        <WeatherButton cities={cities} setCity={setCity} />
+        {loading ? (
+          <ClipLoader color="#f88c6b" loading={loading} size={150} />
+        ) : !apiError ? (
+        <div className='container'>
+          <WeatherBox weather={weather} />
+          <WeatherButton cities={cities} handleCityChange={handleCityChange} selectedCity={city} />
+        </div>
+      ) : (
+      apiError
+    )}
       </div>
     </div>
   );
